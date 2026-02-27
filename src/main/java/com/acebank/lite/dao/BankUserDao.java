@@ -11,6 +11,10 @@ public interface BankUserDao {
 
     String getPasswordHash(int accountNo) throws SQLException;
 
+    Integer getAccountNoByIdentifier(String email, String phone) throws SQLException;
+
+    String getTransactionPinHash(int accountNo) throws SQLException;
+
     boolean login(int accountNo, String password) throws SQLException;
 
     boolean signUp(User user, int accountNo) throws SQLException;
@@ -26,6 +30,8 @@ public interface BankUserDao {
     boolean transfer(int fromAccount, int toAccount, BigDecimal amount) throws SQLException;
 
     List<Transaction> getStatement(int accountNo) throws SQLException;
+
+    List<Transaction> getFilteredStatement(int accountNo, String fromDate, String toDate) throws SQLException;
 
     boolean changePassword(int accountNo, String oldPw, String newPw) throws SQLException;
 

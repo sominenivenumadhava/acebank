@@ -5,7 +5,6 @@ import java.io.Serial;
 import java.util.List;
 import java.util.Optional;
 
-
 import com.acebank.lite.dao.BankUserDao;
 import com.acebank.lite.dao.BankUserDaoImpl;
 import com.acebank.lite.models.LoginResult;
@@ -31,19 +30,17 @@ public class Login extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String accStr = request.getParameter("accountNumber");
+        String identifier = request.getParameter("identifier");
         String password = request.getParameter("password");
-//        String rememberMe = request.getParameter("rememberMe");
+        // String rememberMe = request.getParameter("rememberMe");
 
         try {
-            int accountNo = Integer.parseInt(accStr);
-
             // 1. Authenticate via Service
-            Optional<LoginResult> loginResultOpt = bankService.authenticate(accountNo, password);
-
+            Optional<LoginResult> loginResultOpt = bankService.authenticate(identifier, password);
 
             if (loginResultOpt.isPresent()) {
                 var details = loginResultOpt.get();
+                int accountNo = details.accountNumber();
                 HttpSession session = request.getSession(true);
 
                 // 2. Populate Session Attributes
@@ -59,16 +56,16 @@ public class Login extends HttpServlet {
 
                 // 4. Handle "Remember Me" Cookie
 
-
                 log.info("User " + accountNo + " logged in successfully.");
 
-//                request.getRequestDispatcher("/WEB-INF/views/Home.jsp").forward(request, response);
+                // request.getRequestDispatcher("/WEB-INF/views/Home.jsp").forward(request,
+                // response);
 
                 // PRG Pattern
                 // REDIRECT: Tells browser "Go to /home using GET"
                 response.sendRedirect(request.getContextPath() + "/home");
             } else {
-                log.warning("Authentication failed for account: " + accStr);
+                log.warning("Authentication failed for identifier: " + identifier);
                 response.sendRedirect("LoginFail.jsp");
             }
         } catch (Exception e) {

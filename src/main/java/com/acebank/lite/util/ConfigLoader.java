@@ -8,14 +8,21 @@ public class ConfigLoader {
     private static final Properties properties = new Properties();
 
     static {
-        // Look for the file in the src/main/resources folder
-        try (InputStream is = ConfigLoader.class.getClassLoader()
-                .getResourceAsStream(ConfigKeys.DEV_PROPERTIES)) {
+        // Look for the file in the classpath
+        try {
+            InputStream is = ConfigLoader.class.getResourceAsStream("/" + ConfigKeys.DEV_PROPERTIES);
+            if (is == null) {
+                is = Thread.currentThread().getContextClassLoader().getResourceAsStream(ConfigKeys.DEV_PROPERTIES);
+            }
+            if (is == null) {
+                is = ConfigLoader.class.getClassLoader().getResourceAsStream(ConfigKeys.DEV_PROPERTIES);
+            }
 
             if (is == null) {
                 throw new RuntimeException("Could not find " + ConfigKeys.DEV_PROPERTIES);
             }
             properties.load(is);
+            is.close();
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to load configuration", e);
@@ -32,7 +39,8 @@ public class ConfigLoader {
         String envValue = System.getenv(key.replace(".", "_").toUpperCase());
 
         // I am giving priority to env variables
-        if (envValue != null) return envValue;
+        if (envValue != null)
+            return envValue;
 
         // Priority 2: Check the properties file
         return properties.getProperty(key);

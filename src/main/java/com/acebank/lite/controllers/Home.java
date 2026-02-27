@@ -1,6 +1,5 @@
 package com.acebank.lite.controllers;
 
-
 import com.acebank.lite.models.*;
 
 import com.acebank.lite.service.BankService;
@@ -76,6 +75,7 @@ public class Home extends HttpServlet {
         String toAccountStr = request.getParameter("toAccount");
         String toAmountStr = request.getParameter("toAmount");
         String withdrawAmount = request.getParameter("withdraw");
+        String txPin = request.getParameter("transactionPin");
 
         String redirectUrl = "home"; // Default redirect back to dashboard
 
@@ -85,21 +85,42 @@ public class Home extends HttpServlet {
                 BigDecimal amount = new BigDecimal(depositAmtStr);
                 boolean status = bankService.processDeposit(accountNumber, amount);
                 log.info("Deposit Status: " + status);
-
+                if (status) {
+                    redirectUrl += "?success=Deposit+Successful";
+                } else {
+                    redirectUrl += "?error=Deposit+Failed";
+                }
             }
-// --- ACTION 2: WITHDRAW ---
+            // --- ACTION 2: WITHDRAW ---
             else if (withdrawAmount != null && !withdrawAmount.trim().isEmpty()) {
-                BigDecimal amount = new BigDecimal(withdrawAmount);
-                // Ensure your Service has this method matching the DAO rectification we did
-                String status = bankService.withdraw(accountNumber, amount);
-                log.info("Withdrawal Status: " + status);
+                if (!bankService.verifyTransactionPin(accountNumber, txPin)) {
+                    redirectUrl += "?error=Invalid+Transaction+PIN";
+                } else {
+                    BigDecimal amount = new BigDecimal(withdrawAmount);
+                    String status = bankService.withdraw(accountNumber, amount);
+                    log.info("Withdrawal Status: " + status);
+                    if ("SUCCESS".equals(status)) {
+                        redirectUrl += "?success=Withdrawal+Successful";
+                    } else {
+                        redirectUrl += "?error=" + java.net.URLEncoder.encode(status, "UTF-8");
+                    }
+                }
             }
 
             // --- ACTION 3: TRANSFER ---
             else if (toAccountStr != null && toAmountStr != null && !toAccountStr.trim().isEmpty()) {
-                int recipientAcc = Integer.parseInt(toAccountStr);
-                BigDecimal amount = new BigDecimal(toAmountStr);
-                bankService.processTransfer(accountNumber, recipientAcc, amount);
+                if (!bankService.verifyTransactionPin(accountNumber, txPin)) {
+                    redirectUrl += "?error=Invalid+Transaction+PIN";
+                } else {
+                    int recipientAcc = Integer.parseInt(toAccountStr);
+                    BigDecimal amount = new BigDecimal(toAmountStr);
+                    ServiceResponse responseDto = bankService.processTransfer(accountNumber, recipientAcc, amount);
+                    if (responseDto.success()) {
+                        redirectUrl += "?success=Transfer+Successful";
+                    } else {
+                        redirectUrl += "?error=" + java.net.URLEncoder.encode(responseDto.message(), "UTF-8");
+                    }
+                }
             }
 
         } catch (NumberFormatException e) {
@@ -110,7 +131,7 @@ public class Home extends HttpServlet {
         }
 
         // The Redirect: This triggers the doGet() and prevents double-form submission
-        response.sendRedirect(request.getContextPath() + "/home");
+        response.sendRedirect(request.getContextPath() + "/" + redirectUrl);
 
     }
 

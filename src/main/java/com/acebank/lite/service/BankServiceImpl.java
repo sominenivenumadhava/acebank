@@ -1,6 +1,5 @@
 package com.acebank.lite.service;
 
-
 import com.acebank.lite.dao.BankUserDao;
 import com.acebank.lite.dao.BankUserDaoImpl;
 
@@ -23,10 +22,22 @@ public class BankServiceImpl implements BankService {
     private final BankUserDao userDao = new BankUserDaoImpl(); // Or get via Singleton
     private static final BigDecimal DAILY_LIMIT = new BigDecimal("500.00");
 
-
     @Override
-    public Optional<LoginResult> authenticate(int accountNo, String plainPassword) {
+    public Optional<LoginResult> authenticate(String identifier, String plainPassword) {
         try {
+            String email = null;
+            String phone = null;
+            if (identifier.contains("@")) {
+                email = identifier;
+            } else {
+                phone = identifier;
+            }
+
+            Integer accountNo = userDao.getAccountNoByIdentifier(email, phone);
+            if (accountNo == null) {
+                return Optional.empty();
+            }
+
             // 1. Get the hash using the new DAO method
             String storedHash = userDao.getPasswordHash(accountNo);
 
@@ -41,6 +52,20 @@ public class BankServiceImpl implements BankService {
         return Optional.empty();
     }
 
+    @Override
+    public boolean verifyTransactionPin(int accountNo, String rawPin) {
+        if (rawPin == null || !rawPin.matches("\\d{4}"))
+            return false;
+        try {
+            String storedHash = userDao.getTransactionPinHash(accountNo);
+            if (storedHash != null) {
+                return storedHash.equals(PasswordUtil.hash(rawPin));
+            }
+        } catch (SQLException e) {
+            log.severe("Error verifying PIN: " + e.getMessage());
+        }
+        return false;
+    }
 
     @Override
     public boolean changePassword(int accountNo, String oldPlain, String newPlain) throws SQLException {
@@ -52,7 +77,6 @@ public class BankServiceImpl implements BankService {
         }
         return false;
     }
-
 
     @Override
     public boolean processDeposit(int accountNo, BigDecimal amount) {
@@ -70,7 +94,6 @@ public class BankServiceImpl implements BankService {
         }
     }
 
-
     @Override
     public String withdraw(int accountNo, BigDecimal amount) {
         try {
@@ -85,7 +108,7 @@ public class BankServiceImpl implements BankService {
 
             if (projectedTotal.compareTo(DAILY_LIMIT) > 0) {
                 BigDecimal remaining = DAILY_LIMIT.subtract(alreadyWithdrawn);
-                return "Limit exceeded. You can only withdraw $" + remaining + " more today.";
+                return "Limit exceeded. You can only withdraw ₹" + remaining + " more today.";
             }
 
             // Rule 3: Process the actual DB update via DAO
@@ -97,26 +120,29 @@ public class BankServiceImpl implements BankService {
         }
     }
 
-
     @Override
     public Optional<LoginResult> registerUser(User user) {
         // 1. Generate a unique account number
         int accountNumber = ThreadLocalRandom.current().nextInt(10000000, 99999999);
         // Hash before saving to DB
         String secureHash = PasswordUtil.hashPassword(user.passwordHash());
+        String securePinHash = PasswordUtil.hash(user.transactionPin());
 
         // Create a new version of the record with the hash
         User secureUser = new User(
                 user.userId(), user.firstName(), user.lastName(),
-                user.aadhaarNo(), user.email(), secureHash, user.createdAt()
-        );
+                user.aadhaarNo(), user.email(), user.phoneNumber(), secureHash, securePinHash, user.createdAt());
         try {
             // 2. Save to Database via DAO
             boolean isSaved = userDao.signUp(secureUser, accountNumber);
 
             if (isSaved) {
-                // 3. Send Welcome Email (Asynchronous is better, but this works for now)
-                sendWelcomeEmail(user, accountNumber);
+                // 3. Send Welcome Email or SMS
+                if (secureUser.email() != null && !secureUser.email().trim().isEmpty()) {
+                    sendWelcomeEmail(secureUser, accountNumber);
+                } else if (secureUser.phoneNumber() != null && !secureUser.phoneNumber().trim().isEmpty()) {
+                    sendWelcomeSMS(secureUser, accountNumber);
+                }
 
                 // 4. Return the details to be used for the session
                 return Optional.of(new LoginResult(
@@ -124,8 +150,7 @@ public class BankServiceImpl implements BankService {
                         user.lastName(),
                         user.email(),
                         BigDecimal.ZERO,
-                        accountNumber
-                ));
+                        accountNumber));
             }
         } catch (Exception e) {
             log.severe("Signup Error: " + e.getMessage());
@@ -133,6 +158,14 @@ public class BankServiceImpl implements BankService {
         return Optional.empty();
     }
 
+    private void sendWelcomeSMS(User user, int accNo) {
+        // Simulate sending SMS using console log
+        String msg = String.format(
+                "SMS Sent to %s: Dear %s, Welcome to AceBank! Your account number is: %d. Keep it safe.",
+                user.phoneNumber(), user.firstName(), accNo);
+        log.info(msg);
+        System.out.println(">>> " + msg + " <<<");
+    }
 
     private void sendWelcomeEmail(User user, int accNo) {
         String subject = "Welcome to AceBank";
@@ -162,6 +195,16 @@ public class BankServiceImpl implements BankService {
         } catch (SQLException e) {
             log.severe("Could not fetch transactions for: " + accountNo);
             return List.of(); // Return empty list to avoid NullPointer in JSP
+        }
+    }
+
+    @Override
+    public List<Transaction> getFilteredStatement(int accountNo, String fromDate, String toDate) {
+        try {
+            return userDao.getFilteredStatement(accountNo, fromDate, toDate);
+        } catch (SQLException e) {
+            log.severe("Could not fetch filtered transactions for: " + accountNo);
+            return List.of(); // Return empty list
         }
     }
 
@@ -238,23 +281,21 @@ public class BankServiceImpl implements BankService {
         return false;
     }
 
-
     @Override
     public boolean applyForLoan(String firstName, String email, String loanType) {
         String subject = "Loan Application Received - AceBank";
         String body = String.format(
                 """
                         Dear %s,
-                        
+
                         Thank you for applying for a %s loan with AceBank.
                         We have received your request and our team will review it shortly.
-                        
+
                         We will be in touch with you as soon as a decision is made.
-                        
+
                         Sincerely,
                         The AceBank Team""",
-                firstName, loanType
-        );
+                firstName, loanType);
 
         try {
             MailUtil.sendMail(email, subject, body);
@@ -264,6 +305,5 @@ public class BankServiceImpl implements BankService {
             return false;
         }
     }
-
 
 }

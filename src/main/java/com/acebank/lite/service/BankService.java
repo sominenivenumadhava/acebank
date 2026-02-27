@@ -1,7 +1,5 @@
 package com.acebank.lite.service;
 
-
-
 import com.acebank.lite.models.LoginResult;
 import com.acebank.lite.models.ServiceResponse;
 import com.acebank.lite.models.Transaction;
@@ -13,7 +11,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface BankService {
-    Optional<LoginResult> authenticate(int accountNo, String password) throws SQLException;
+    Optional<LoginResult> authenticate(String identifier, String plainPassword) throws SQLException;
+
+    boolean verifyTransactionPin(int accountNo, String rawPin);
 
     boolean changePassword(int accountNo, String oldPlain, String newPlain) throws SQLException;
 
@@ -22,6 +22,8 @@ public interface BankService {
     BigDecimal getBalance(int accountNo);
 
     List<Transaction> getTransactionHistory(int accountNo);
+
+    List<Transaction> getFilteredStatement(int accountNo, String fromDate, String toDate);
 
     ServiceResponse processTransfer(int fromAcc, int toAcc, BigDecimal amount);
 
