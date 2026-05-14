@@ -1,10 +1,10 @@
 package com.acebank.lite.controllers;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import lombok.extern.java.Log;
 
 import java.io.IOException;
@@ -32,9 +32,9 @@ public class ErrorHandler extends HttpServlet {
             throws ServletException, IOException {
 
         // Retrieve error details from the request attributes
-        Integer statusCode = (Integer) request.getAttribute("jakarta.servlet.error.status_code");
-        String requestUri = (String) request.getAttribute("jakarta.servlet.error.request_uri");
-        Throwable throwable = (Throwable) request.getAttribute("jakarta.servlet.error.exception");
+        Integer statusCode = (Integer) request.getAttribute("javax.servlet.error.status_code");
+        String requestUri = (String) request.getAttribute("javax.servlet.error.request_uri");
+        Throwable throwable = (Throwable) request.getAttribute("javax.servlet.error.exception");
 
         // Null-safety: Default values if the handler is accessed directly or attributes are missing
         if (statusCode == null) statusCode = 0;

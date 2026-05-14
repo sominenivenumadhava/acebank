@@ -1,0 +1,43 @@
+-- ──────────────────────────────────────────────────────────────────
+-- AceBank — Docker MySQL initializer
+-- This script runs automatically when the MySQL container starts
+-- for the very first time (mounted via docker-entrypoint-initdb.d/)
+-- ──────────────────────────────────────────────────────────────────
+
+-- Use the database created by MYSQL_DATABASE env variable
+USE bankdb;
+
+-- USERS table
+CREATE TABLE IF NOT EXISTS USERS (
+    USER_ID        INT AUTO_INCREMENT PRIMARY KEY,
+    FIRST_NAME     VARCHAR(255) NOT NULL,
+    LAST_NAME      VARCHAR(255) NOT NULL,
+    AADHAAR_NO     VARCHAR(12)  UNIQUE NOT NULL,
+    EMAIL          VARCHAR(255) UNIQUE,
+    PHONE_NUMBER   VARCHAR(15)  UNIQUE,
+    PASSWORD_HASH  VARCHAR(255) NOT NULL,
+    TRANSACTION_PIN VARCHAR(255),
+    CREATED_AT     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ACCOUNTS table
+CREATE TABLE IF NOT EXISTS ACCOUNTS (
+    ACCOUNT_NO   INT PRIMARY KEY,
+    USER_ID      INT,
+    ACCOUNT_TYPE ENUM('SAVINGS', 'CHECKING', 'LOAN') DEFAULT 'SAVINGS',
+    BALANCE      DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+    STATUS       ENUM('ACTIVE', 'BLOCKED', 'CLOSED') DEFAULT 'ACTIVE',
+    FOREIGN KEY (USER_ID) REFERENCES USERS(USER_ID) ON DELETE CASCADE
+);
+
+-- TRANSACTIONS table
+CREATE TABLE IF NOT EXISTS TRANSACTIONS (
+    ID               INT AUTO_INCREMENT PRIMARY KEY,
+    SENDER_ACCOUNT   INT NULL,   -- NULL for Deposits
+    RECEIVER_ACCOUNT INT NULL,   -- NULL for Withdrawals
+    AMOUNT           DECIMAL(15, 2) NOT NULL,
+    TX_TYPE          ENUM('TRANSFER', 'DEPOSIT', 'WITHDRAWAL') NOT NULL,
+    REMARK           VARCHAR(255),
+    CREATED_AT       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (SENDER_ACCOUNT) REFERENCES ACCOUNTS(ACCOUNT_NO)
+);

@@ -23,4 +23,9 @@ public class ConfigKeys {
     public static final String DB_PWD = "db.password";
     public static final String DB_SCRIPT_PATH = "db.script.path";
     public static final String DB_MYSQL_DRIVER = "db.mysql.driver";
+
+    // Twilio SMS Keys
+    public static final String TWILIO_ACCOUNT_SID = "twilio.account.sid";
+    public static final String TWILIO_AUTH_TOKEN = "twilio.auth.token";
+    public static final String TWILIO_PHONE_NUMBER = "twilio.phone.number";
 }

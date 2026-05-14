@@ -114,7 +114,7 @@
                     </div>
                 </c:if>
 
-                <form action="${pageContext.request.contextPath}/ForgotPassword" method="POST" novalidate>
+                <form action="${pageContext.request.contextPath}/forgotPassword" method="POST" novalidate>
 
                     <div class="form-group">
                         <label class="form-label" for="email">Email Address</label>

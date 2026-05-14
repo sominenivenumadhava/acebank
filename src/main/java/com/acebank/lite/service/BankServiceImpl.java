@@ -20,7 +20,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class BankServiceImpl implements BankService {
 
     private final BankUserDao userDao = new BankUserDaoImpl(); // Or get via Singleton
-    private static final BigDecimal DAILY_LIMIT = new BigDecimal("500.00");
+    private static final BigDecimal DAILY_LIMIT = new BigDecimal("100000.00");
 
     @Override
     public Optional<LoginResult> authenticate(String identifier, String plainPassword) {
@@ -159,12 +159,11 @@ public class BankServiceImpl implements BankService {
     }
 
     private void sendWelcomeSMS(User user, int accNo) {
-        // Simulate sending SMS using console log
+        // Send SMS using the new SmsUtil (Twilio API)
         String msg = String.format(
-                "SMS Sent to %s: Dear %s, Welcome to AceBank! Your account number is: %d. Keep it safe.",
-                user.phoneNumber(), user.firstName(), accNo);
-        log.info(msg);
-        System.out.println(">>> " + msg + " <<<");
+                "Dear %s, Welcome to AceBank! Your account number is: %d. Keep it safe.",
+                user.firstName(), accNo);
+        com.acebank.lite.util.SmsUtil.sendSmsAsync(user.phoneNumber(), msg);
     }
 
     private void sendWelcomeEmail(User user, int accNo) {
@@ -172,7 +171,7 @@ public class BankServiceImpl implements BankService {
         String msg = String.format("Dear %s,\n\nWelcome! Your account number is: %d.\nKeep it safe!",
                 user.firstName(), accNo);
         try {
-            MailUtil.sendMail(user.email(), subject, msg);
+            MailUtil.sendMailAsync(user.email(), subject, msg);
         } catch (Exception e) {
             log.warning("Email failed to send, but account was created.");
         }

@@ -3,9 +3,9 @@ package com.acebank.lite.controllers;
 
 import com.acebank.lite.service.BankService;
 import com.acebank.lite.service.BankServiceImpl;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -23,7 +23,7 @@ public class Deposit extends HttpServlet {
         String amountStr = request.getParameter("amount");
 
         if (accNo == null) {
-            response.sendRedirect("Login.jsp");
+            response.sendRedirect("login.jsp");
             return;
         }
 

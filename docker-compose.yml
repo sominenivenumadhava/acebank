@@ -1,0 +1,60 @@
+services:
+
+  # ─────────────────────────────────────────
+  # Service 1: MySQL 8 Database
+  # ─────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: acebank-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bankdb
+    ports:
+      - "3307:3306"  # Host 3307 → container 3306 (avoids conflict with local MySQL)
+    volumes:
+      # Persist database data across container restarts
+      - mysql_data:/var/lib/mysql
+      # Auto-initialize schema on first boot (all .sql files in this folder are executed)
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/00_init.sql
+      - ./src/main/resources/sql:/docker-entrypoint-initdb.d/sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ─────────────────────────────────────────
+  # Service 2: Java Web App (Tomcat 9)
+  # ─────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: acebank-app
+    restart: unless-stopped
+    ports:
+      - "8081:8080"  # Host 8081 → Tomcat 8080 (avoids Nginx conflict on 8080)
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Override application-dev.properties values via env vars.
+      # ConfigLoader converts "db.url" key → "DB_URL" env var automatically.
+      DB_URL: jdbc:mysql://db:3306/bankdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_MYSQL_DRIVER: com.mysql.cj.jdbc.Driver
+      DB_SCRIPT_PATH: /sql/schema_initializer.sql
+      # Mail settings (override if needed)
+      MAIL_DEFAULT_ADDRESS: ${MAIL_DEFAULT_ADDRESS:-}
+      MAIL_GOOGLE_APP_PASSWORD: ${MAIL_GOOGLE_APP_PASSWORD:-}
+      # Twilio settings (override if needed)
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
+
+volumes:
+  mysql_data:
+    driver: local

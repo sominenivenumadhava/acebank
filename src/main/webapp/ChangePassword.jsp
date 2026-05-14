@@ -161,7 +161,7 @@
                     </div>
                 </c:if>
 
-                <form action="${pageContext.request.contextPath}/ChangePassword" method="POST" id="change-form"
+                <form action="${pageContext.request.contextPath}/changePassword" method="POST" id="change-form"
                     novalidate>
 
                     <div class="form-group">

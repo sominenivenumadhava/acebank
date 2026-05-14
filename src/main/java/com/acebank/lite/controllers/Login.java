@@ -11,13 +11,13 @@ import com.acebank.lite.models.LoginResult;
 import com.acebank.lite.models.Transaction;
 import com.acebank.lite.service.BankService;
 import com.acebank.lite.service.BankServiceImpl;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
 import lombok.extern.java.Log;
 
 @Log
-@WebServlet(name = "Login", urlPatterns = "/Login")
+@WebServlet(name = "Login", urlPatterns = "/login")
 public class Login extends HttpServlet {
 
     @Serial
@@ -77,6 +77,6 @@ public class Login extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.sendRedirect("Login.jsp");
+        request.getRequestDispatcher("login.jsp").forward(request, response);
     }
 }
